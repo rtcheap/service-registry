@@ -32,10 +32,12 @@ func main() {
 func newServer(e *env) *http.Server {
 	r := httputil.NewRouter("service-registry", e.checkHealth)
 
-	r.POST("/v1/services", e.registerService)
-	r.GET("/v1/services", notImplemented)
-	r.GET("/v1/services/:id", e.findService)
-	r.PUT("/v1/services/:id/status/:status", e.setServiceStatus)
+	v1 := r.Group("/v1")
+
+	v1.POST("/services", e.registerService)
+	v1.GET("/services", notImplemented)
+	v1.GET("/services/:id", e.findService)
+	v1.PUT("/services/:id/status/:status", e.setServiceStatus)
 
 	return &http.Server{
 		Addr:    ":" + e.cfg.port,
