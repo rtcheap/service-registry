@@ -71,6 +71,73 @@ func (r *serviceRepo) Save(ctx context.Context, svc dto.Service) (dto.Service, e
 	return svc, tx.Commit()
 }
 
+const findQuery = `
+	SELECT 
+		id, 
+		application, 
+		location, 
+		port, 
+		status 
+	FROM service
+	WHERE 
+		id = ?`
+
+func (r *serviceRepo) Find(ctx context.Context, id string) (dto.Service, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "serviceRepo.Find")
+	defer span.Finish()
+
+	s := dto.Service{}
+	err := r.db.QueryRowContext(ctx, findQuery, id).Scan(&s.ID, &s.Application, &s.Location, &s.Port, &s.Status)
+	if err != nil && err != sql.ErrNoRows {
+		err = fmt.Errorf("failed to query database. %w", err)
+		recordError(span, err)
+		return dto.Service{}, err
+	}
+
+	span.LogFields(tracelog.Bool("success", true))
+	return s, err
+}
+
+const findByApplicationQuery = `
+	SELECT 
+		id, 
+		application, 
+		location, 
+		port, 
+		status 
+	FROM service
+	WHERE 
+		application = ?`
+
+func (r *serviceRepo) FindByApplication(ctx context.Context, application string) ([]dto.Service, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "serviceRepo.FindByApplication")
+	defer span.Finish()
+
+	rows, err := r.db.QueryContext(ctx, findByApplicationQuery, application)
+	if err != nil {
+		err = fmt.Errorf("failed to query database. %w", err)
+		recordError(span, err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	services := make([]dto.Service, 0)
+	for rows.Next() {
+		s := dto.Service{}
+		err = rows.Scan(&s.ID, &s.Application, &s.Location, &s.Port, &s.Status)
+		if err != nil {
+			err = fmt.Errorf("failed to scan row. %w", err)
+			recordError(span, err)
+			return nil, err
+		}
+
+		services = append(services, s)
+	}
+
+	span.LogFields(tracelog.Bool("success", true))
+	return services, nil
+}
+
 const findExistingIDQuery = `
 	SELECT 
 		id 
@@ -159,61 +226,6 @@ func updateService(ctx context.Context, tx *sql.Tx, svc dto.Service) error {
 
 	span.LogFields(tracelog.Bool("success", true))
 	return nil
-}
-
-const findQuery = `
-	SELECT 
-		id, 
-		application, 
-		location, 
-		port, 
-		status 
-	FROM service
-	WHERE 
-		id = ?`
-
-func (r *serviceRepo) Find(ctx context.Context, id string) (dto.Service, error) {
-	return dto.Service{}, fmt.Errorf("not implemented")
-}
-
-const findByApplicationQuery = `
-	SELECT 
-		id, 
-		application, 
-		location, 
-		port, 
-		status 
-	FROM service
-	WHERE 
-		application = ?`
-
-func (r *serviceRepo) FindByApplication(ctx context.Context, application string) ([]dto.Service, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "serviceRepo.FindByApplication")
-	defer span.Finish()
-
-	rows, err := r.db.QueryContext(ctx, findByApplicationQuery, application)
-	if err != nil {
-		err = fmt.Errorf("failed to query database. %w", err)
-		recordError(span, err)
-		return nil, err
-	}
-	defer rows.Close()
-
-	services := make([]dto.Service, 0)
-	for rows.Next() {
-		s := dto.Service{}
-		err = rows.Scan(&s.ID, &s.Application, &s.Location, &s.Port, &s.Status)
-		if err != nil {
-			err = fmt.Errorf("failed to scan row. %w", err)
-			recordError(span, err)
-			return nil, err
-		}
-
-		services = append(services, s)
-	}
-
-	span.LogFields(tracelog.Bool("success", true))
-	return services, nil
 }
 
 func recordError(span opentracing.Span, err error) {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/CzarSimon/httputil"
@@ -45,6 +46,25 @@ func (s *RegistryService) Register(ctx context.Context, svc dto.Service) (dto.Se
 
 	span.LogFields(tracelog.Bool("success", true))
 	return saved, nil
+}
+
+// Find looks up and and returns service with the given id.
+func (s *RegistryService) Find(ctx context.Context, id string) (dto.Service, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "RegistryService.Find")
+	defer span.Finish()
+
+	svc, err := s.repo.Find(ctx, id)
+	if err != nil {
+		notFound := err == sql.ErrNoRows
+		span.LogFields(tracelog.Bool("success", notFound), tracelog.Error(err))
+		if notFound {
+			err = httputil.NotFoundError(err)
+		}
+		return dto.Service{}, err
+	}
+
+	span.LogFields(tracelog.Bool("success", true))
+	return svc, nil
 }
 
 // SetStatus records the status of a given service.

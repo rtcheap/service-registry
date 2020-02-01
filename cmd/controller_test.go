@@ -167,13 +167,45 @@ func TestRegister_ExistingService(t *testing.T) {
 	assert.Equal(svc.Status, storedSvc.Status)
 }
 
+func TestFindService(t *testing.T) {
+	assert := assert.New(t)
+	e, ctx := createTestEnv()
+	repo := repository.NewServiceRepository(e.db)
+	server := newServer(e)
+
+	svcID := id.New()
+	svc := dto.Service{
+		ID:          svcID,
+		Application: "test-app",
+		Location:    "ip-1",
+		Port:        8080,
+		Status:      dto.StatusHealty,
+	}
+	_, err := repo.Save(ctx, svc)
+	assert.NoError(err)
+	req := createTestRequest("/v1/services/"+svcID, http.MethodGet, jwt.AnonymousRole, nil)
+	res := performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	var resBody dto.Service
+	err = rpc.DecodeJSON(res.Result(), &resBody)
+	assert.NoError(err)
+	assert.Equal(svcID, resBody.ID)
+	assert.Equal(svc.Application, resBody.Application)
+	assert.Equal(svc.Location, resBody.Location)
+	assert.Equal(svc.Port, resBody.Port)
+	assert.Equal(svc.Status, resBody.Status)
+
+	req = createTestRequest("/v1/services/"+id.New(), http.MethodGet, jwt.AnonymousRole, nil)
+	res = performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusNotFound, res.Code)
+}
+
 // ---- Test utils ----
 
 func createTestEnv() (*env, context.Context) {
 	cfg := config{
-		db: dbutil.SqliteConfig{
-			Name: "./test.db",
-		},
+		db:             dbutil.SqliteConfig{},
 		migrationsPath: "../resources/db/sqlite",
 		jwtCredentials: getTestJWTCredentials(),
 	}
