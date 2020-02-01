@@ -8,7 +8,7 @@ CREATE TABLE `service` (
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE(`application`, `location`, `port`)
+  UNIQUE(`location`, `port`)
 );
 CREATE INDEX `idx_service_application` ON `service`(`application`);
 -- +migrate Down

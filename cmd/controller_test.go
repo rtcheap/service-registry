@@ -10,6 +10,7 @@ import (
 
 	"github.com/CzarSimon/httputil/client/rpc"
 	"github.com/CzarSimon/httputil/dbutil"
+	"github.com/CzarSimon/httputil/id"
 	"github.com/CzarSimon/httputil/jwt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/opentracing/opentracing-go"
@@ -20,7 +21,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestRegister(t *testing.T) {
+func TestRegister_NewService(t *testing.T) {
 	assert := assert.New(t)
 	e, ctx := createTestEnv()
 	repo := repository.NewServiceRepository(e.db)
@@ -85,6 +86,85 @@ func TestRegister(t *testing.T) {
 	assert.Equal(svc.Location, storedSvc.Location)
 	assert.Equal(svc.Port, storedSvc.Port)
 	assert.Equal(dto.StatusHealty, storedSvc.Status)
+}
+
+func TestRegister_ExistingService(t *testing.T) {
+	assert := assert.New(t)
+	e, ctx := createTestEnv()
+	repo := repository.NewServiceRepository(e.db)
+	server := newServer(e)
+
+	existingSvc := dto.Service{
+		ID:          id.New(),
+		Application: "test-app",
+		Location:    "ip-1",
+		Port:        8080,
+		Status:      dto.StatusHealty,
+	}
+	_, err := repo.Save(ctx, existingSvc)
+	assert.NoError(err)
+
+	services, err := repo.FindByApplication(ctx, "test-app")
+	assert.NoError(err)
+	assert.Len(services, 1)
+
+	svc := dto.Service{
+		ID:          existingSvc.ID,
+		Application: "test-app",
+		Location:    "ip-2",
+		Port:        8080,
+		Status:      dto.StatusHealty,
+	}
+	req := createTestRequest("/v1/services", http.MethodPost, jwt.AnonymousRole, svc)
+	res := performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	var resBody dto.Service
+	err = rpc.DecodeJSON(res.Result(), &resBody)
+	assert.NoError(err)
+	assert.Equal(existingSvc.ID, resBody.ID)
+	assert.Equal(svc.Application, resBody.Application)
+	assert.Equal(svc.Location, resBody.Location)
+	assert.Equal(svc.Port, resBody.Port)
+	assert.Equal(svc.Status, resBody.Status)
+
+	services, err = repo.FindByApplication(ctx, "test-app")
+	assert.NoError(err)
+	assert.Len(services, 1)
+	storedSvc := services[0]
+	assert.Equal(existingSvc.ID, storedSvc.ID)
+	assert.Equal(svc.Application, storedSvc.Application)
+	assert.Equal(svc.Location, storedSvc.Location)
+	assert.Equal(svc.Port, storedSvc.Port)
+	assert.Equal(svc.Status, storedSvc.Status)
+
+	svc = dto.Service{
+		Application: "test-app",
+		Location:    "ip-2",
+		Port:        8080,
+		Status:      "UNHEALTHY",
+	}
+	req = createTestRequest("/v1/services", http.MethodPost, jwt.AnonymousRole, svc)
+	res = performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	err = rpc.DecodeJSON(res.Result(), &resBody)
+	assert.NoError(err)
+	assert.Equal(existingSvc.ID, resBody.ID)
+	assert.Equal(svc.Application, resBody.Application)
+	assert.Equal(svc.Location, resBody.Location)
+	assert.Equal(svc.Port, resBody.Port)
+	assert.Equal(svc.Status, resBody.Status)
+
+	services, err = repo.FindByApplication(ctx, "test-app")
+	assert.NoError(err)
+	assert.Len(services, 1)
+	storedSvc = services[0]
+	assert.Equal(existingSvc.ID, storedSvc.ID)
+	assert.Equal(svc.Application, storedSvc.Application)
+	assert.Equal(svc.Location, storedSvc.Location)
+	assert.Equal(svc.Port, storedSvc.Port)
+	assert.Equal(svc.Status, storedSvc.Status)
 }
 
 // ---- Test utils ----

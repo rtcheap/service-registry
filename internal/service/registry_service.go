@@ -36,7 +36,7 @@ func (s *RegistryService) Register(ctx context.Context, svc dto.Service) (dto.Se
 		svc.Status = dto.StatusHealty
 	}
 
-	err := s.repo.Save(ctx, svc)
+	saved, err := s.repo.Save(ctx, svc)
 	if err != nil {
 		err = httputil.InternalServerError(err)
 		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
@@ -44,7 +44,7 @@ func (s *RegistryService) Register(ctx context.Context, svc dto.Service) (dto.Se
 	}
 
 	span.LogFields(tracelog.Bool("success", true))
-	return svc, nil
+	return saved, nil
 }
 
 // SetStatus records the status of a given service.
