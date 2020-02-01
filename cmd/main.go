@@ -9,6 +9,7 @@ import (
 	"github.com/CzarSimon/httputil/logger"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/rtcheap/service-registry/internal/repository"
 	"github.com/rtcheap/service-registry/internal/service"
 	"go.uber.org/zap"
 )
@@ -31,7 +32,7 @@ func main() {
 func newServer(e *env) *http.Server {
 	r := httputil.NewRouter("service-registry", e.checkHealth)
 
-	r.POST("/v1/services", notImplemented)
+	r.POST("/v1/services", e.registerService)
 	r.GET("/v1/services", notImplemented)
 	r.GET("/v1/services/:id", notImplemented)
 	r.PUT("/v1/services/:id/status/:status", notImplemented)
@@ -68,10 +69,12 @@ func setupEnv() *env {
 		log.Fatal("failed to apply database migrations", zap.Error(err))
 	}
 
+	repo := repository.NewServiceRepository(db)
+
 	return &env{
 		cfg:      cfg,
 		db:       db,
-		registry: service.NewRegistryService(nil),
+		registry: service.NewRegistryService(repo),
 	}
 }
 
