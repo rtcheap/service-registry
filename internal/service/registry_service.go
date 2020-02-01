@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/rtcheap/dto"
 	"github.com/rtcheap/service-registry/internal/repository"
 )
@@ -19,15 +21,15 @@ func NewRegistryService(repo repository.ServiceRepository) *RegistryService {
 
 // Register saves information about a service.
 func (s *RegistryService) Register(svc dto.Service) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 // SetStatus records the status of a given service.
 func (s *RegistryService) SetStatus(id string, status dto.ServiceStatus) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 // FindApplicationServices looks up all serices for an application.
 func (s *RegistryService) FindApplicationServices(application string, includeUnhealthy bool) ([]dto.Service, error) {
-	return nil, nil
+	return nil, fmt.Errorf("not implemented")
 }
