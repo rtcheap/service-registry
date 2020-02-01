@@ -35,7 +35,7 @@ func newServer(e *env) *http.Server {
 	r.POST("/v1/services", e.registerService)
 	r.GET("/v1/services", notImplemented)
 	r.GET("/v1/services/:id", e.findService)
-	r.PUT("/v1/services/:id/status/:status", notImplemented)
+	r.PUT("/v1/services/:id/status/:status", e.setServiceStatus)
 
 	return &http.Server{
 		Addr:    ":" + e.cfg.port,

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CzarSimon/httputil"
 	"github.com/CzarSimon/httputil/client/rpc"
 	"github.com/CzarSimon/httputil/dbutil"
 	"github.com/CzarSimon/httputil/id"
@@ -199,6 +200,49 @@ func TestFindService(t *testing.T) {
 	req = createTestRequest("/v1/services/"+id.New(), http.MethodGet, jwt.AnonymousRole, nil)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusNotFound, res.Code)
+}
+
+func TestSetServiceServiceStatus(t *testing.T) {
+	assert := assert.New(t)
+	e, ctx := createTestEnv()
+	repo := repository.NewServiceRepository(e.db)
+	server := newServer(e)
+
+	svcID := id.New()
+	svc := dto.Service{
+		ID:          svcID,
+		Application: "test-app",
+		Location:    "ip-1",
+		Port:        8080,
+		Status:      dto.StatusHealty,
+	}
+	_, err := repo.Save(ctx, svc)
+	assert.NoError(err)
+
+	var newStatus dto.ServiceStatus = "UNHEALTHY"
+	path := fmt.Sprintf("/v1/services/%s/status/%s", svcID, newStatus)
+	req := createTestRequest(path, http.MethodPut, jwt.AnonymousRole, nil)
+	res := performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	storedSvc, err := repo.Find(ctx, svcID)
+	assert.NoError(err)
+	assert.Equal(svcID, storedSvc.ID)
+	assert.Equal(svc.Application, storedSvc.Application)
+	assert.Equal(svc.Location, storedSvc.Location)
+	assert.Equal(svc.Port, storedSvc.Port)
+	assert.Equal(newStatus, storedSvc.Status)
+
+	path = fmt.Sprintf("/v1/services/%s/status/%s", id.New(), newStatus)
+	req = createTestRequest(path, http.MethodPut, jwt.AnonymousRole, nil)
+	res = performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusPreconditionRequired, res.Code)
+
+	var httpErr httputil.Error
+	err = rpc.DecodeJSON(res.Result(), &httpErr)
+	assert.Equal("Precondition Required", httpErr.Message)
+	assert.Equal(http.StatusPreconditionRequired, httpErr.Status)
+	assert.Nil(httpErr.Err)
 }
 
 // ---- Test utils ----

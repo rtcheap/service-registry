@@ -69,7 +69,28 @@ func (s *RegistryService) Find(ctx context.Context, id string) (dto.Service, err
 
 // SetStatus records the status of a given service.
 func (s *RegistryService) SetStatus(ctx context.Context, id string, status dto.ServiceStatus) error {
-	return fmt.Errorf("not implemented")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "RegistryService.SetStatus")
+	defer span.Finish()
+
+	svc, err := s.repo.Find(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = httputil.PreconditionRequiredError(err)
+		}
+		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		return err
+	}
+
+	svc.Status = status
+	_, err = s.repo.Save(ctx, svc)
+	if err != nil {
+		err := fmt.Errorf("failed to save status update for service(id=%s). %w", id, err)
+		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		return err
+	}
+
+	span.LogFields(tracelog.Bool("success", true))
+	return nil
 }
 
 // FindApplicationServices looks up all serices for an application.

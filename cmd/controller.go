@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -32,7 +31,7 @@ func (e *env) registerService(c *gin.Context) {
 		return
 	}
 
-	span.LogFields(tracelog.Bool("success", false))
+	span.LogFields(tracelog.Bool("success", true))
 	c.JSON(http.StatusOK, svc)
 }
 
@@ -40,21 +39,29 @@ func (e *env) findService(c *gin.Context) {
 	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller.findService")
 	defer span.Finish()
 
-	id := c.Param("id")
-	if id == "" {
-		err := httputil.BadRequestError(errors.New("route param id cannot be empty"))
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
-		c.Error(err)
-		return
-	}
-
-	svc, err := e.registry.Find(ctx, id)
+	svc, err := e.registry.Find(ctx, c.Param("id"))
 	if err != nil {
 		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
 		c.Error(err)
 		return
 	}
 
-	span.LogFields(tracelog.Bool("success", false))
+	span.LogFields(tracelog.Bool("success", true))
 	c.JSON(http.StatusOK, svc)
+}
+
+func (e *env) setServiceStatus(c *gin.Context) {
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller.setServiceStatus")
+	defer span.Finish()
+
+	status := dto.ServiceStatus(c.Param("status"))
+	err := e.registry.SetStatus(ctx, c.Param("id"), status)
+	if err != nil {
+		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		c.Error(err)
+		return
+	}
+
+	span.LogFields(tracelog.Bool("success", true))
+	httputil.SendOK(c)
 }
