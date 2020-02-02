@@ -2,6 +2,10 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/CzarSimon/httputil v0.0.0-20200131221702-d88baa2d1184 h1:zTW44hfE1rDieQ6WGwTZ0oK2t1LIYy38qoqwIaB67wU=
 github.com/CzarSimon/httputil v0.0.0-20200131221702-d88baa2d1184/go.mod h1:zB2yvGtxaJctNWZX/Jp/j0shWq2Q6U3Qc+FrV0bwHh0=
+github.com/CzarSimon/httputil v0.0.0-20200202192117-7f40cf702d58 h1:kbOPKwcrFD39ZbKGZmEW5s2lhBT0Rk1KlZfuBQ4OBqg=
+github.com/CzarSimon/httputil v0.0.0-20200202192117-7f40cf702d58/go.mod h1:zB2yvGtxaJctNWZX/Jp/j0shWq2Q6U3Qc+FrV0bwHh0=
+github.com/CzarSimon/httputil v0.0.0-20200202200343-0e43a0091012 h1:owpjnsmIcbC97buJCXPbixO2N0h0tZLig2H3y6UskBo=
+github.com/CzarSimon/httputil v0.0.0-20200202200343-0e43a0091012/go.mod h1:w6Yb3CuxRYG9kgFmoinULoT4vMNrh1j51iZBmdjtzmA=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
@@ -199,6 +203,8 @@ golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4/go.mod h1:yigFU9vqHzYiE8U
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/crypto v0.0.0-20200117160349-530e935923ad h1:Jh8cai0fqIK+f6nG0UgPW5wFk8wmiMhM3AyciDBdtQg=
 golang.org/x/crypto v0.0.0-20200117160349-530e935923ad/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20200128174031-69ecbb4d6d5d h1:9FCpayM9Egr1baVnV1SX0H87m+XB0B8S0hAMi99X/3U=
+golang.org/x/crypto v0.0.0-20200128174031-69ecbb4d6d5d/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/lint v0.0.0-20190930215403-16217165b5de h1:5hukYrvBGR8/eNkX5mdUezrA6JiaEZDtJb9Ei+1LlBs=
 golang.org/x/lint v0.0.0-20190930215403-16217165b5de/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
 golang.org/x/lint v0.0.0-20200130185559-910be7a94367 h1:0IiAsCRByjO2QjX7ZPkw5oU9x+n1YqRL802rjC0c3Aw=

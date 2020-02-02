@@ -7,11 +7,15 @@ import (
 
 	"github.com/CzarSimon/httputil"
 	"github.com/CzarSimon/httputil/id"
+	"github.com/CzarSimon/httputil/logger"
 	"github.com/opentracing/opentracing-go"
 	tracelog "github.com/opentracing/opentracing-go/log"
 	"github.com/rtcheap/dto"
 	"github.com/rtcheap/service-registry/internal/repository"
+	"go.uber.org/zap"
 )
+
+var log = logger.GetDefaultLogger("service-registry/service")
 
 // RegistryService service registry.
 type RegistryService struct {
@@ -44,6 +48,7 @@ func (s *RegistryService) Register(ctx context.Context, svc dto.Service) (dto.Se
 		return dto.Service{}, err
 	}
 
+	log.Debug("registered service", zap.Any("service", saved))
 	span.LogFields(tracelog.Bool("success", true))
 	return saved, nil
 }

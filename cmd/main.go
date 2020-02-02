@@ -30,7 +30,7 @@ func newServer(e *env) *http.Server {
 	r := httputil.NewRouter("service-registry", e.checkHealth)
 
 	rbac := httputil.RBAC{
-		Verfifier: jwt.NewVerifier(e.cfg.jwtCredentials, time.Minute),
+		Verifier: jwt.NewVerifier(e.cfg.jwtCredentials, time.Minute),
 	}
 	v1 := r.Group("/v1", rbac.Secure(jwt.SystemRole))
 
