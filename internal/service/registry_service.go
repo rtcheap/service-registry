@@ -94,6 +94,29 @@ func (s *RegistryService) SetStatus(ctx context.Context, id string, status dto.S
 }
 
 // FindApplicationServices looks up all serices for an application.
-func (s *RegistryService) FindApplicationServices(ctx context.Context, application string, includeUnhealthy bool) ([]dto.Service, error) {
-	return nil, fmt.Errorf("not implemented")
+func (s *RegistryService) FindApplicationServices(ctx context.Context, application string, onlyHealthy bool) ([]dto.Service, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "RegistryService.FindApplicationServices")
+	defer span.Finish()
+
+	services, err := s.repo.FindByApplication(ctx, application)
+	if err != nil {
+		err := fmt.Errorf("failed to query database for application =%s. %w", application, err)
+		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		return nil, err
+	}
+
+	if !onlyHealthy {
+		span.LogFields(tracelog.Bool("success", true))
+		return services, nil
+	}
+
+	healthyServices := make([]dto.Service, 0, len(services))
+	for _, svc := range services {
+		if svc.Status == dto.StatusHealty {
+			healthyServices = append(healthyServices, svc)
+		}
+	}
+
+	span.LogFields(tracelog.Bool("success", true))
+	return healthyServices, nil
 }

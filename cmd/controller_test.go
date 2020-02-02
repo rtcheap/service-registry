@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -243,6 +244,126 @@ func TestSetServiceServiceStatus(t *testing.T) {
 	assert.Equal("Precondition Required", httpErr.Message)
 	assert.Equal(http.StatusPreconditionRequired, httpErr.Status)
 	assert.Nil(httpErr.Err)
+}
+
+func TestFindApplicationServices(t *testing.T) {
+	assert := assert.New(t)
+	e, ctx := createTestEnv()
+	repo := repository.NewServiceRepository(e.db)
+	server := newServer(e)
+
+	storedServices := []dto.Service{
+		dto.Service{
+			Application: "test-app",
+			Location:    "ip-1",
+			Port:        8080,
+			Status:      dto.StatusHealty,
+		},
+		dto.Service{
+			Application: "other-app",
+			Location:    "ip-2",
+			Port:        8080,
+			Status:      dto.StatusHealty,
+		},
+		dto.Service{
+			Application: "test-app",
+			Location:    "ip-3",
+			Port:        8080,
+			Status:      dto.StatusHealty,
+		},
+		dto.Service{
+			Application: "test-app",
+			Location:    "ip-1",
+			Port:        8081,
+			Status:      dto.StatusHealty,
+		},
+		dto.Service{
+			Application: "test-app",
+			Location:    "ip-4",
+			Port:        8080,
+			Status:      "UNHEALTHY",
+		},
+	}
+	for i, svc := range storedServices {
+		svc.ID = strconv.Itoa(i + 1)
+		_, err := repo.Save(ctx, svc)
+		assert.NoError(err)
+	}
+
+	// Testcase: Happy path - Default to only healthy
+	req := createTestRequest("/v1/services?application=test-app", http.MethodGet, jwt.AnonymousRole, nil)
+	res := performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	healthyServices := make([]dto.Service, 0, 3)
+	err := rpc.DecodeJSON(res.Result(), &healthyServices)
+	assert.NoError(err)
+
+	assert.Len(healthyServices, 3)
+	for i, expectedID := range []string{"1", "3", "4"} {
+		assert.Equal(expectedID, healthyServices[i].ID)
+	}
+
+	// Testcase: Happy path - Specified only healthy
+	req = createTestRequest("/v1/services?application=test-app&only-healthy=true", http.MethodGet, jwt.AnonymousRole, nil)
+	res = performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	explicitHealthyServices := make([]dto.Service, 0, 3)
+	err = rpc.DecodeJSON(res.Result(), &explicitHealthyServices)
+	assert.NoError(err)
+
+	assert.Len(explicitHealthyServices, 3)
+	for i, expectedID := range []string{"1", "3", "4"} {
+		assert.Equal(expectedID, explicitHealthyServices[i].ID)
+	}
+
+	// Testcase: Happy path - Specified to include unhealthy
+	req = createTestRequest("/v1/services?application=test-app&only-healthy=0", http.MethodGet, jwt.AnonymousRole, nil)
+	res = performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	servicesIncludingUnhealthy := make([]dto.Service, 0, 4)
+	err = rpc.DecodeJSON(res.Result(), &servicesIncludingUnhealthy)
+	assert.NoError(err)
+
+	assert.Len(servicesIncludingUnhealthy, 4)
+	for i, expectedID := range []string{"1", "3", "4", "5"} {
+		assert.Equal(expectedID, servicesIncludingUnhealthy[i].ID)
+	}
+
+	// Testcase: Happy path - No services exist for application
+	req = createTestRequest("/v1/services?application=missing-app", http.MethodGet, jwt.AnonymousRole, nil)
+	res = performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	noServices := make([]dto.Service, 0)
+	err = rpc.DecodeJSON(res.Result(), &noServices)
+	assert.NoError(err)
+	assert.Len(noServices, 0)
+
+	// Testcase: No application specified, should return 400 error
+	req = createTestRequest("/v1/services", http.MethodGet, jwt.AnonymousRole, nil)
+	res = performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusBadRequest, res.Code)
+}
+
+func TestHealthCheck(t *testing.T) {
+	assert := assert.New(t)
+	e, _ := createTestEnv()
+	server := newServer(e)
+
+	req := createTestRequest("/health", http.MethodGet, "", nil)
+	res := performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusOK, res.Code)
+
+	err := e.db.Close()
+	assert.NoError(err)
+
+	// Database disconnected, should return 503 error
+	req = createTestRequest("/health", http.MethodGet, "", nil)
+	res = performTestRequest(server.Handler, req)
+	assert.Equal(http.StatusServiceUnavailable, res.Code)
 }
 
 // ---- Test utils ----

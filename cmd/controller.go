@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/CzarSimon/httputil"
 	"github.com/gin-gonic/gin"
@@ -64,4 +65,36 @@ func (e *env) setServiceStatus(c *gin.Context) {
 
 	span.LogFields(tracelog.Bool("success", true))
 	httputil.SendOK(c)
+}
+
+func (e *env) findApplicationServices(c *gin.Context) {
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller.findApplicationServices")
+	defer span.Finish()
+
+	onlyHealthy := parseQueryFlag(c, "only-healthy", true)
+	application, err := httputil.ParseQueryValue(c, "application")
+	if err != nil {
+		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		c.Error(err)
+		return
+	}
+
+	services, err := e.registry.FindApplicationServices(ctx, application, onlyHealthy)
+	if err != nil {
+		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		c.Error(err)
+		return
+	}
+
+	span.LogFields(tracelog.Bool("success", true))
+	c.JSON(http.StatusOK, services)
+}
+
+func parseQueryFlag(c *gin.Context, name string, defaultValue bool) bool {
+	flag, ok := c.GetQuery(name)
+	if !ok {
+		return defaultValue
+	}
+
+	return strings.ToLower(flag) == "true" || flag == "1"
 }
