@@ -1,4 +1,5 @@
 {
     "name": "service-registry",
-    "version": "0.1.0"
+    "version": "0.1.0",
+    "registry": "eu.gcr.io/rtcheap"
 }
