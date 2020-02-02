@@ -39,7 +39,7 @@ func TestRegister_NewService(t *testing.T) {
 		Port:        8080,
 		Status:      dto.StatusHealty,
 	}
-	req := createTestRequest("/v1/services", http.MethodPost, jwt.AnonymousRole, svc)
+	req := createTestRequest("/v1/services", http.MethodPost, jwt.SystemRole, svc)
 	res := performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -67,7 +67,7 @@ func TestRegister_NewService(t *testing.T) {
 		Location:    "ip-2",
 		Port:        8080,
 	}
-	req = createTestRequest("/v1/services", http.MethodPost, jwt.AnonymousRole, svc)
+	req = createTestRequest("/v1/services", http.MethodPost, jwt.SystemRole, svc)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -117,7 +117,7 @@ func TestRegister_ExistingService(t *testing.T) {
 		Port:        8080,
 		Status:      dto.StatusHealty,
 	}
-	req := createTestRequest("/v1/services", http.MethodPost, jwt.AnonymousRole, svc)
+	req := createTestRequest("/v1/services", http.MethodPost, jwt.SystemRole, svc)
 	res := performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -144,9 +144,9 @@ func TestRegister_ExistingService(t *testing.T) {
 		Application: "test-app",
 		Location:    "ip-2",
 		Port:        8080,
-		Status:      "UNHEALTHY",
+		Status:      dto.StatusUnhealthy,
 	}
-	req = createTestRequest("/v1/services", http.MethodPost, jwt.AnonymousRole, svc)
+	req = createTestRequest("/v1/services", http.MethodPost, jwt.SystemRole, svc)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -185,7 +185,7 @@ func TestFindService(t *testing.T) {
 	}
 	_, err := repo.Save(ctx, svc)
 	assert.NoError(err)
-	req := createTestRequest("/v1/services/"+svcID, http.MethodGet, jwt.AnonymousRole, nil)
+	req := createTestRequest("/v1/services/"+svcID, http.MethodGet, jwt.SystemRole, nil)
 	res := performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -198,7 +198,7 @@ func TestFindService(t *testing.T) {
 	assert.Equal(svc.Port, resBody.Port)
 	assert.Equal(svc.Status, resBody.Status)
 
-	req = createTestRequest("/v1/services/"+id.New(), http.MethodGet, jwt.AnonymousRole, nil)
+	req = createTestRequest("/v1/services/"+id.New(), http.MethodGet, jwt.SystemRole, nil)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusNotFound, res.Code)
 }
@@ -220,9 +220,9 @@ func TestSetServiceServiceStatus(t *testing.T) {
 	_, err := repo.Save(ctx, svc)
 	assert.NoError(err)
 
-	var newStatus dto.ServiceStatus = "UNHEALTHY"
+	var newStatus dto.ServiceStatus = dto.StatusUnhealthy
 	path := fmt.Sprintf("/v1/services/%s/status/%s", svcID, newStatus)
-	req := createTestRequest(path, http.MethodPut, jwt.AnonymousRole, nil)
+	req := createTestRequest(path, http.MethodPut, jwt.SystemRole, nil)
 	res := performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -235,7 +235,7 @@ func TestSetServiceServiceStatus(t *testing.T) {
 	assert.Equal(newStatus, storedSvc.Status)
 
 	path = fmt.Sprintf("/v1/services/%s/status/%s", id.New(), newStatus)
-	req = createTestRequest(path, http.MethodPut, jwt.AnonymousRole, nil)
+	req = createTestRequest(path, http.MethodPut, jwt.SystemRole, nil)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusPreconditionRequired, res.Code)
 
@@ -281,7 +281,7 @@ func TestFindApplicationServices(t *testing.T) {
 			Application: "test-app",
 			Location:    "ip-4",
 			Port:        8080,
-			Status:      "UNHEALTHY",
+			Status:      dto.StatusUnhealthy,
 		},
 	}
 	for i, svc := range storedServices {
@@ -291,7 +291,7 @@ func TestFindApplicationServices(t *testing.T) {
 	}
 
 	// Testcase: Happy path - Default to only healthy
-	req := createTestRequest("/v1/services?application=test-app", http.MethodGet, jwt.AnonymousRole, nil)
+	req := createTestRequest("/v1/services?application=test-app", http.MethodGet, jwt.SystemRole, nil)
 	res := performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -305,7 +305,7 @@ func TestFindApplicationServices(t *testing.T) {
 	}
 
 	// Testcase: Happy path - Specified only healthy
-	req = createTestRequest("/v1/services?application=test-app&only-healthy=true", http.MethodGet, jwt.AnonymousRole, nil)
+	req = createTestRequest("/v1/services?application=test-app&only-healthy=true", http.MethodGet, jwt.SystemRole, nil)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -319,7 +319,7 @@ func TestFindApplicationServices(t *testing.T) {
 	}
 
 	// Testcase: Happy path - Specified to include unhealthy
-	req = createTestRequest("/v1/services?application=test-app&only-healthy=0", http.MethodGet, jwt.AnonymousRole, nil)
+	req = createTestRequest("/v1/services?application=test-app&only-healthy=0", http.MethodGet, jwt.SystemRole, nil)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -333,7 +333,7 @@ func TestFindApplicationServices(t *testing.T) {
 	}
 
 	// Testcase: Happy path - No services exist for application
-	req = createTestRequest("/v1/services?application=missing-app", http.MethodGet, jwt.AnonymousRole, nil)
+	req = createTestRequest("/v1/services?application=missing-app", http.MethodGet, jwt.SystemRole, nil)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusOK, res.Code)
 
@@ -343,7 +343,7 @@ func TestFindApplicationServices(t *testing.T) {
 	assert.Len(noServices, 0)
 
 	// Testcase: No application specified, should return 400 error
-	req = createTestRequest("/v1/services", http.MethodGet, jwt.AnonymousRole, nil)
+	req = createTestRequest("/v1/services", http.MethodGet, jwt.SystemRole, nil)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusBadRequest, res.Code)
 }
@@ -364,6 +364,37 @@ func TestHealthCheck(t *testing.T) {
 	req = createTestRequest("/health", http.MethodGet, "", nil)
 	res = performTestRequest(server.Handler, req)
 	assert.Equal(http.StatusServiceUnavailable, res.Code)
+}
+
+func TestPermissions(t *testing.T) {
+	assert := assert.New(t)
+	e, _ := createTestEnv()
+	server := newServer(e)
+
+	cases := []struct {
+		method string
+		route  string
+	}{
+		{method: http.MethodPost, route: "/v1/services"},
+		{method: http.MethodGet, route: "/v1/services/some-id"},
+		{method: http.MethodGet, route: "/v1/services?application=some-app"},
+		{method: http.MethodPut, route: "/v1/services/some-id/status/HEALTHY"},
+	}
+
+	badRoles := []string{jwt.AnonymousRole, jwt.AdminRole, ""}
+
+	for _, tc := range cases {
+		for _, role := range badRoles {
+			req := createTestRequest(tc.route, tc.method, role, nil)
+			res := performTestRequest(server.Handler, req)
+
+			expectedStatus := http.StatusForbidden
+			if role == "" {
+				expectedStatus = http.StatusUnauthorized
+			}
+			assert.Equal(expectedStatus, res.Code)
+		}
+	}
 }
 
 // ---- Test utils ----

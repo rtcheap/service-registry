@@ -2,8 +2,10 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/CzarSimon/httputil"
+	"github.com/CzarSimon/httputil/jwt"
 	"github.com/CzarSimon/httputil/logger"
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
@@ -27,7 +29,10 @@ func main() {
 func newServer(e *env) *http.Server {
 	r := httputil.NewRouter("service-registry", e.checkHealth)
 
-	v1 := r.Group("/v1")
+	rbac := httputil.RBAC{
+		Verfifier: jwt.NewVerifier(e.cfg.jwtCredentials, time.Minute),
+	}
+	v1 := r.Group("/v1", rbac.Secure(jwt.SystemRole))
 
 	v1.POST("/services", e.registerService)
 	v1.GET("/services", e.findApplicationServices)
