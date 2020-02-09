@@ -6,3 +6,6 @@ install:
 
 run:
 	sh run-local.sh
+
+run-image:
+	sh run-image.sh

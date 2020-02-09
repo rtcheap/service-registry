@@ -1,0 +1,9 @@
+.github
+.gitignore
+Makefile
+package.json
+run-image.sh
+service-registry
+run-local.sh
+cmd/test.db
+cmd/cmd
