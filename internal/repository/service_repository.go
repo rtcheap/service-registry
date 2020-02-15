@@ -31,13 +31,13 @@ type serviceRepo struct {
 }
 
 func (r *serviceRepo) Save(ctx context.Context, svc dto.Service) (dto.Service, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "serviceRepo.Save")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service_repo_save")
 	defer span.Finish()
 
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		err = fmt.Errorf("failed to create transaction. %w", err)
-		recordError(span, err)
+		span.LogFields(tracelog.Error(err))
 		dbutil.Rollback(tx)
 		return dto.Service{}, err
 	}
@@ -45,7 +45,7 @@ func (r *serviceRepo) Save(ctx context.Context, svc dto.Service) (dto.Service, e
 	existingID, err := findExistingServiceID(ctx, tx, svc)
 	if err != nil {
 		err = fmt.Errorf("failed to query for existing service. %w", err)
-		recordError(span, err)
+		span.LogFields(tracelog.Error(err))
 		dbutil.Rollback(tx)
 		return dto.Service{}, err
 	}
@@ -53,7 +53,7 @@ func (r *serviceRepo) Save(ctx context.Context, svc dto.Service) (dto.Service, e
 		svc.ID = existingID
 		err = updateService(ctx, tx, svc)
 		if err != nil {
-			recordError(span, err)
+			span.LogFields(tracelog.Error(err))
 			dbutil.Rollback(tx)
 			return dto.Service{}, err
 		}
@@ -62,12 +62,11 @@ func (r *serviceRepo) Save(ctx context.Context, svc dto.Service) (dto.Service, e
 
 	err = insertNewService(ctx, tx, svc)
 	if err != nil {
-		recordError(span, err)
+		span.LogFields(tracelog.Error(err))
 		dbutil.Rollback(tx)
 		return dto.Service{}, err
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	return svc, tx.Commit()
 }
 
@@ -83,18 +82,17 @@ const findQuery = `
 		id = ?`
 
 func (r *serviceRepo) Find(ctx context.Context, id string) (dto.Service, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "serviceRepo.Find")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service_repo_find")
 	defer span.Finish()
 
 	s := dto.Service{}
 	err := r.db.QueryRowContext(ctx, findQuery, id).Scan(&s.ID, &s.Application, &s.Location, &s.Port, &s.Status)
 	if err != nil && err != sql.ErrNoRows {
 		err = fmt.Errorf("failed to query database. %w", err)
-		recordError(span, err)
+		span.LogFields(tracelog.Error(err))
 		return dto.Service{}, err
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	return s, err
 }
 
@@ -110,13 +108,13 @@ const findByApplicationQuery = `
 		application = ?`
 
 func (r *serviceRepo) FindByApplication(ctx context.Context, application string) ([]dto.Service, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "serviceRepo.FindByApplication")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service_repo_find_by_application")
 	defer span.Finish()
 
 	rows, err := r.db.QueryContext(ctx, findByApplicationQuery, application)
 	if err != nil {
 		err = fmt.Errorf("failed to query database. %w", err)
-		recordError(span, err)
+		span.LogFields(tracelog.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
@@ -127,14 +125,13 @@ func (r *serviceRepo) FindByApplication(ctx context.Context, application string)
 		err = rows.Scan(&s.ID, &s.Application, &s.Location, &s.Port, &s.Status)
 		if err != nil {
 			err = fmt.Errorf("failed to scan row. %w", err)
-			recordError(span, err)
+			span.LogFields(tracelog.Error(err))
 			return nil, err
 		}
 
 		services = append(services, s)
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	return services, nil
 }
 
@@ -150,7 +147,7 @@ const findExistingIDQuery = `
 		)`
 
 func findExistingServiceID(ctx context.Context, tx *sql.Tx, svc dto.Service) (string, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.findExistingServiceID")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repository_find_existing_service_id")
 	defer span.Finish()
 
 	var existingID string
@@ -159,11 +156,10 @@ func findExistingServiceID(ctx context.Context, tx *sql.Tx, svc dto.Service) (st
 		return "", nil
 	} else if err != nil {
 		err = fmt.Errorf("failed to query for existing service(id=%s). %w", svc.ID, err)
-		recordError(span, err)
+		span.LogFields(tracelog.Error(err))
 		return "", err
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	return existingID, nil
 }
 
@@ -187,18 +183,17 @@ const insertServiceQuery = `
 	)`
 
 func insertNewService(ctx context.Context, tx *sql.Tx, svc dto.Service) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.insertNewService")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repository_insert_new_service")
 	defer span.Finish()
 
 	now := time.Now().UTC()
 	_, err := tx.ExecContext(ctx, insertServiceQuery, svc.ID, svc.Application, svc.Location, svc.Port, svc.Status, now, now)
 	if err != nil {
 		err = fmt.Errorf("failed to insert new service. %w", err)
-		recordError(span, err)
+		span.LogFields(tracelog.Error(err))
 		return err
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	return nil
 }
 
@@ -213,24 +208,16 @@ const updateServiceQuery = `
 		id = ?`
 
 func updateService(ctx context.Context, tx *sql.Tx, svc dto.Service) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.updateService")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repository_update_service")
 	defer span.Finish()
 
 	now := time.Now().UTC()
 	_, err := tx.ExecContext(ctx, updateServiceQuery, svc.Application, svc.Location, svc.Port, svc.Status, now, svc.ID)
 	if err != nil {
 		err = fmt.Errorf("failed to update service(id=%s). %w", svc.ID, err)
-		recordError(span, err)
+		span.LogFields(tracelog.Error(err))
 		return err
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	return nil
-}
-
-func recordError(span opentracing.Span, err error) {
-	span.LogFields(
-		tracelog.Bool("success", false),
-		tracelog.Error(err),
-	)
 }

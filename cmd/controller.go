@@ -13,80 +13,76 @@ import (
 )
 
 func (e *env) registerService(c *gin.Context) {
-	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller.registerService")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller_register_service")
 	defer span.Finish()
 
 	var body dto.Service
 	err := c.BindJSON(&body)
 	if err != nil {
 		err = httputil.BadRequestError(fmt.Errorf("failed to parse request body. %w", err))
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		c.Error(err)
 		return
 	}
 
 	svc, err := e.registry.Register(ctx, body)
 	if err != nil {
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		c.Error(err)
 		return
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	c.JSON(http.StatusOK, svc)
 }
 
 func (e *env) findService(c *gin.Context) {
-	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller.findService")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller_find_service")
 	defer span.Finish()
 
 	svc, err := e.registry.Find(ctx, c.Param("id"))
 	if err != nil {
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		c.Error(err)
 		return
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	c.JSON(http.StatusOK, svc)
 }
 
 func (e *env) setServiceStatus(c *gin.Context) {
-	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller.setServiceStatus")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller_set_service_status")
 	defer span.Finish()
 
 	status := dto.ServiceStatus(c.Param("status"))
 	err := e.registry.SetStatus(ctx, c.Param("id"), status)
 	if err != nil {
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		c.Error(err)
 		return
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	httputil.SendOK(c)
 }
 
 func (e *env) findApplicationServices(c *gin.Context) {
-	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller.findApplicationServices")
+	span, ctx := opentracing.StartSpanFromContext(c.Request.Context(), "controller_find_application_services")
 	defer span.Finish()
 
 	onlyHealthy := parseQueryFlag(c, "only-healthy", true)
 	application, err := httputil.ParseQueryValue(c, "application")
 	if err != nil {
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		c.Error(err)
 		return
 	}
 
 	services, err := e.registry.FindApplicationServices(ctx, application, onlyHealthy)
 	if err != nil {
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		c.Error(err)
 		return
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	c.JSON(http.StatusOK, services)
 }
 

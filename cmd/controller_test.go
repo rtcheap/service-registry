@@ -220,7 +220,7 @@ func TestSetServiceServiceStatus(t *testing.T) {
 	_, err := repo.Save(ctx, svc)
 	assert.NoError(err)
 
-	var newStatus dto.ServiceStatus = dto.StatusUnhealthy
+	newStatus := dto.StatusUnhealthy
 	path := fmt.Sprintf("/v1/services/%s/status/%s", svcID, newStatus)
 	req := createTestRequest(path, http.MethodPut, jwt.SystemRole, nil)
 	res := performTestRequest(server.Handler, req)

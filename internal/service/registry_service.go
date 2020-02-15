@@ -31,7 +31,7 @@ func NewRegistryService(repo repository.ServiceRepository) *RegistryService {
 
 // Register saves information about a service.
 func (s *RegistryService) Register(ctx context.Context, svc dto.Service) (dto.Service, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "RegistryService.Register")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "registry_service_register")
 	defer span.Finish()
 
 	if svc.ID == "" {
@@ -44,37 +44,34 @@ func (s *RegistryService) Register(ctx context.Context, svc dto.Service) (dto.Se
 	saved, err := s.repo.Save(ctx, svc)
 	if err != nil {
 		err = httputil.InternalServerError(err)
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		return dto.Service{}, err
 	}
 
-	log.Debug("registered service", zap.Any("service", saved))
-	span.LogFields(tracelog.Bool("success", true))
+	log.Debug("registered service", zap.Stringer("service", saved))
 	return saved, nil
 }
 
 // Find looks up and and returns service with the given id.
 func (s *RegistryService) Find(ctx context.Context, id string) (dto.Service, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "RegistryService.Find")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "registry_service_find")
 	defer span.Finish()
 
 	svc, err := s.repo.Find(ctx, id)
 	if err != nil {
-		notFound := err == sql.ErrNoRows
-		span.LogFields(tracelog.Bool("success", notFound), tracelog.Error(err))
-		if notFound {
+		span.LogFields(tracelog.Error(err))
+		if err == sql.ErrNoRows {
 			err = httputil.NotFoundError(err)
 		}
 		return dto.Service{}, err
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	return svc, nil
 }
 
 // SetStatus records the status of a given service.
 func (s *RegistryService) SetStatus(ctx context.Context, id string, status dto.ServiceStatus) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "RegistryService.SetStatus")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "registry_service_set_status")
 	defer span.Finish()
 
 	svc, err := s.repo.Find(ctx, id)
@@ -82,7 +79,7 @@ func (s *RegistryService) SetStatus(ctx context.Context, id string, status dto.S
 		if err == sql.ErrNoRows {
 			err = httputil.PreconditionRequiredError(err)
 		}
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		return err
 	}
 
@@ -90,28 +87,26 @@ func (s *RegistryService) SetStatus(ctx context.Context, id string, status dto.S
 	_, err = s.repo.Save(ctx, svc)
 	if err != nil {
 		err := fmt.Errorf("failed to save status update for service(id=%s). %w", id, err)
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		return err
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	return nil
 }
 
 // FindApplicationServices looks up all serices for an application.
 func (s *RegistryService) FindApplicationServices(ctx context.Context, application string, onlyHealthy bool) ([]dto.Service, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "RegistryService.FindApplicationServices")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "registry_service_find_application_services")
 	defer span.Finish()
 
 	services, err := s.repo.FindByApplication(ctx, application)
 	if err != nil {
 		err := fmt.Errorf("failed to query database for application =%s. %w", application, err)
-		span.LogFields(tracelog.Bool("success", false), tracelog.Error(err))
+		span.LogFields(tracelog.Error(err))
 		return nil, err
 	}
 
 	if !onlyHealthy {
-		span.LogFields(tracelog.Bool("success", true))
 		return services, nil
 	}
 
@@ -122,6 +117,5 @@ func (s *RegistryService) FindApplicationServices(ctx context.Context, applicati
 		}
 	}
 
-	span.LogFields(tracelog.Bool("success", true))
 	return healthyServices, nil
 }

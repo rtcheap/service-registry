@@ -154,6 +154,8 @@ github.com/rogpeppe/go-internal v1.3.2/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTE
 github.com/rogpeppe/go-internal v1.4.0/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
 github.com/rtcheap/dto v0.0.0-20200201152535-a54894eeaeb5 h1:9ZbCLKR+wccSLfxfFadXY926dXg286IXwwmCDaUfAYY=
 github.com/rtcheap/dto v0.0.0-20200201152535-a54894eeaeb5/go.mod h1:XT7W1cctqzMFgrUCpvEsdi+t1MN3RrEc+mF5ZlzoNfY=
+github.com/rtcheap/dto v0.0.0-20200209161411-df08e73665a2 h1:mQ/7gY3HFeKtUy/GkqwgruhVTNS/ZuvMhHkjWEZw6HE=
+github.com/rtcheap/dto v0.0.0-20200209161411-df08e73665a2/go.mod h1:XT7W1cctqzMFgrUCpvEsdi+t1MN3RrEc+mF5ZlzoNfY=
 github.com/rubenv/sql-migrate v0.0.0-20200119084958-8794cecc920c h1:6dFcHMxrVcjjYJHg+u9YjcqRaXKSniRsGCHTn0PzaQM=
 github.com/rubenv/sql-migrate v0.0.0-20200119084958-8794cecc920c/go.mod h1:rtQlpHw+eR6UrqaS3kX1VYeaCxzCVdimDS7g5Ln4pPc=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
